@@ -135,7 +135,7 @@ window.CARD_SIDES = {
   var openTime = null;
   var OPENED = false;
 
-  var HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em;display:block"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+var HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em;display:block"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
   /* Chuông mở thiệp — dịch chính xác từ code gốc (el()): 4 nốt 523.25→1046.5,
      2 nốt cao 1567.98/2093 @+.35s, bass 261.63 lowpass 400, arp 2 @+1200ms */
@@ -662,7 +662,7 @@ window.CARD_SIDES = {
   $$("button").forEach(function (b, i) {
     var t = (b.textContent || "").trim();
     if (t.indexOf("Lưu QR") < 0) return;
-    var isGroom = b.closest(".flex-col") && b.closest(".flex-col").textContent.indexOf("8024686888") > -1;
+    var isGroom = b.closest(".flex-col") && b.closest(".flex-col").textContent.indexOf("1023456789") > -1;
     b.addEventListener("click", function () {
       var a = document.createElement("a");
       a.href = isGroom ? "assets/qr/qr-groom.png" : "assets/qr/qr-bride.png";
@@ -676,56 +676,64 @@ window.CARD_SIDES = {
 })();
 
 /* =========================================================================
-   Bản đồ OpenStreetMap nhúng (như mẫu) + TỰ TẢI LẠI khi không tải được (khách báo "lâu lâu hay bị lỗi", 13.11.2026).
+   Bản đồ trong mục Địa điểm. MẶC ĐỊNH: Google Maps nhúng (không cần khoá API), ghim đúng toạ độ venue.lat / venue.lng.
 
-   · Chỉ bắt đầu tải khi khung bản đồ sắp vào màn hình (còn cách ≤ 600px).
-   · Trang không đọc được nội dung bên trong khung (khác tên miền), nên coi là LỖI khi gặp 1 trong 3 dấu hiệu:
-       (a) không tải được biểu tượng của www.openstreetmap.org — máy chủ phát trang bản đồ nhúng,
-       (b) không tải được 1 ảnh ô bản đồ quanh điểm ghim từ tile.openstreetmap.org — máy chủ ảnh bản đồ,
-       (c) quá 15 giây khung vẫn chưa tải xong.
-     (Đo 13.11.2026: cả 2 ảnh thử đều tải được từ trang khác tên miền khi mạng không chặn.)
-   · Lỗi → tự tải lại sau 1,5 giây, 3 giây, 4,5 giây (tối đa 3 lần). Vẫn lỗi → hiện dòng "Chưa tải được bản đồ"
-     kèm nút "Tải lại bản đồ" để khách tự bấm; nút "Chỉ đường" bên dưới vẫn dùng được bình thường.
-   · Ghi chú đo ngày 13.11.2026: có mạng ở Việt Nam chặn hẳn kết nối tới *.openstreetmap.org (ngắt ngay lúc bắt tay TLS,
-     các trang khác vẫn vào bình thường) — trường hợp đó tải lại bao nhiêu lần cũng không được. Muốn khách ở các mạng
-     đó vẫn thấy bản đồ thì bật CARD_MAP_FALLBACK_GOOGLE = true (file _card-data-…): hết 3 lần tải lại thì khung
-     chuyển sang bản đồ Google Maps ở đúng toạ độ đó thay vì báo lỗi.
+   Vì sao không dùng OpenStreetMap như bản build cũ: trên mạng của người làm thiệp (và nhiều khả năng của khách ở Việt Nam)
+   tên miền *.openstreetmap.org bị chặn chập chờn theo từng kết nối — lúc trang bản đồ bị ngắt ("connection reset"), lúc trang
+   vào được nhưng ảnh bản đồ bị ngắt. Khách báo lỗi 3 lần ngày 13.11.2026; đã thử "tải lại vài lần" rồi "thử kết nối trước,
+   lỗi thì đổi sang Google" nhưng vì chặn chập chờn nên vẫn có lúc lọt lỗi. Đo bằng Chrome thật trên mạng đó: cả 3 kiểu
+   nhúng Google Maps đều hiện đúng, khung OpenStreetMap thì hiện trang lỗi.
+
+   CARD_MAP_PROVIDER (file _card-data-…):
+   · "google" (mặc định, đang dùng): khung hiện Google Maps, không gửi yêu cầu nào tới OpenStreetMap.
+   · "osm": OpenStreetMap như mẫu, theo cách cũ — chỉ nên dùng khi chắc khách không ở mạng chặn:
+       1. thử kết nối trước bằng 2 ảnh nhỏ (biểu tượng www.openstreetmap.org + 1 ô bản đồ quanh điểm ghim), chưa đụng tới khung;
+       2. được → đặt bản đồ OpenStreetMap vào khung (quá 15 giây chưa xong coi như lỗi); lỗi → thử lại sau 0,7 / 1,4 / 2,1 giây;
+       3. vẫn lỗi → CARD_MAP_FALLBACK_GOOGLE = true: hiện Google Maps; = false: dòng "Chưa tải được bản đồ" + nút "Tải lại bản đồ".
+   Bản đồ chỉ bắt đầu tải khi khung còn cách màn hình ≤ 600px.
 
    Dùng: window.__CardMap.show(iframe, { lat, lng })  — _side-switch.js gọi mỗi khi đổi bên.
-         window.__CardMap.load()                       — tải ngay, không chờ khung vào màn hình.
+         window.__CardMap.load()                       — chạy ngay, không chờ khung vào màn hình.
    ========================================================================= */
 (function () {
   "use strict";
-  var MAX_RETRY = 3;        // số lần tự tải lại
-  var TIMEOUT_MS = 15000;   // quá ngần này chưa xong thì coi là lỗi
-  var RETRY_STEP_MS = 1500; // lần 1 chờ 1,5s, lần 2 chờ 3s, lần 3 chờ 4,5s
+  var MAX_RETRY = 3;             // (chế độ "osm") số lần thử lại
+  var RETRY_STEP_MS = 700;       // lần 1 chờ 0,7s, lần 2 chờ 1,4s, lần 3 chờ 2,1s
+  var PROBE_TIMEOUT_MS = 6000;   // ảnh thử quá ngần này chưa về thì coi là lỗi
+  var FRAME_TIMEOUT_MS = 15000;  // khung bản đồ quá ngần này chưa tải xong thì coi là lỗi
   var NEAR_MARGIN = "600px";
 
   var frame = null, place = null, note = null;
-  var attempt = 0;        // số lần đã tải lại cho điểm hiện tại
-  var token = 0;          // mỗi lượt tải có số riêng; kết quả của lượt cũ (đã bị thay) bị bỏ qua
+  var attempt = 0;      // số lần đã thử lại cho điểm hiện tại
+  var token = 0;        // mỗi lượt có số riêng; kết quả của lượt cũ (đã bị thay) bị bỏ qua
   var timer = 0, retryTimer = 0;
-  var near = false, watching = false, usingFallback = false;
+  var near = false, watching = false;
+  var showing = "";     // "", "osm", "google"
 
-  // Khung nhìn ±0.00605° kinh độ, ±0.005° vĩ độ quanh điểm ghim — bằng mức thu phóng của mẫu
-  function embedSrc(v) {
+  // Google Maps nhúng kiểu không khoá API: ghim tại toạ độ, thu phóng 16 (ngang mức của mẫu), giao diện tiếng Việt
+  function googleSrc(v) {
+    return "https://www.google.com/maps?q=" + v.lat + "," + v.lng + "&z=16&hl=vi&output=embed";
+  }
+  // OpenStreetMap nhúng: khung nhìn ±0.00605° kinh độ, ±0.005° vĩ độ quanh điểm ghim — bằng mức thu phóng của mẫu
+  function osmSrc(v) {
     var dx = 0.00605, dy = 0.005;
     return "https://www.openstreetmap.org/export/embed.html?bbox=" +
       [(v.lng - dx).toFixed(4), (v.lat - dy).toFixed(4), (v.lng + dx).toFixed(4), (v.lat + dy).toFixed(4)].join("%2C") +
       "&layer=mapnik&marker=" + v.lat + "%2C" + v.lng;
   }
-  function googleSrc(v) {
-    return "https://www.google.com/maps?q=" + v.lat + "," + v.lng + "&z=16&hl=vi&output=embed";
-  }
-
-  // Ảnh ô bản đồ dùng để thử xem máy chủ ảnh bản đồ có trả ảnh không: lấy ngẫu nhiên 1 ô ở mức thu phóng 17 hoặc 18
-  // quanh điểm ghim. Khung nhúng chỉ tải ô mức 16, nên ô thử hầu như chưa nằm trong bộ nhớ đệm của trình duyệt —
-  // nếu lấy đúng ô khung đã tải thì lúc mạng bị chặn ảnh vẫn "tải được" từ bộ nhớ đệm và không phát hiện ra lỗi.
+  // (chế độ "osm") 1 ô bản đồ ngẫu nhiên ở mức thu phóng 17 hoặc 18 quanh điểm ghim — khung nhúng chỉ tải ô mức 16 nên ô thử
+  // hầu như chưa nằm trong bộ nhớ đệm; lấy đúng ô khung đã tải thì lúc bị chặn ảnh vẫn "tải được" từ bộ nhớ đệm
   function tileUrl(v) {
     var z = Math.random() < 0.5 ? 17 : 18, n = Math.pow(2, z), rad = v.lat * Math.PI / 180;
     var x = Math.floor((v.lng + 180) / 360 * n) + Math.floor(Math.random() * 3) - 1;
     var y = Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n) + Math.floor(Math.random() * 3) - 1;
     return "https://tile.openstreetmap.org/" + z + "/" + x + "/" + y + ".png";
+  }
+
+  function setFrame(url, kind) {
+    showing = kind;
+    frame.removeAttribute("loading"); // tự mình quyết định lúc tải, không để trình duyệt hoãn thêm
+    if (frame.getAttribute("src") !== url) frame.setAttribute("src", url);
   }
 
   function ensureNote() {
@@ -746,12 +754,8 @@ window.CARD_SIDES = {
     frame.insertAdjacentElement("afterend", note);
   }
 
-  function giveUp() { // hết lượt tự tải lại
-    if (window.CARD_MAP_FALLBACK_GOOGLE === true) {
-      usingFallback = true;
-      frame.setAttribute("src", googleSrc(place));
-      return;
-    }
+  function giveUp() { // (chế độ "osm") hết lượt thử lại
+    if (window.CARD_MAP_FALLBACK_GOOGLE !== false) return setFrame(googleSrc(place), "google");
     ensureNote();
     if (note) note.hidden = false;
   }
@@ -766,76 +770,85 @@ window.CARD_SIDES = {
   function start() {
     if (!frame || !place) return;
     var my = ++token;
-    var done = false, frameLoaded = false, tileOk = false, siteOk = false;
+    var failed = false, siteOk = false, tileOk = false;
     clearTimeout(timer);
     clearTimeout(retryTimer);
-    usingFallback = false;
     if (note) note.hidden = true;
 
+    // Mặc định: Google Maps. Chỉ đi đường OpenStreetMap khi file dữ liệu ghi rõ CARD_MAP_PROVIDER = "osm".
+    if (window.CARD_MAP_PROVIDER !== "osm") { attempt = 0; return setFrame(googleSrc(place), "google"); }
+
     function fail() {
-      if (done || my !== token) return;
-      done = true;
+      if (failed || my !== token) return;
+      failed = true;
       clearTimeout(timer);
       retry();
     }
-    function check() { // xong khi khung đã tải và cả 2 ảnh thử đều tải được
-      if (done || my !== token || !frameLoaded || !tileOk || !siteOk) return;
-      done = true;
+    function probed() { // cả 2 ảnh thử đã về → mới đặt bản đồ OpenStreetMap vào khung
+      if (failed || my !== token || !siteOk || !tileOk) return;
       clearTimeout(timer);
-      attempt = 0;
+      var onLoad = function () {
+        frame.removeEventListener("load", onLoad);
+        if (my !== token || failed) return;
+        clearTimeout(timer);
+        attempt = 0;
+      };
+      frame.addEventListener("load", onLoad);
+      // ở các lần thử lại thêm tham số phụ để trình duyệt chắc chắn gửi yêu cầu mới (OpenStreetMap bỏ qua tham số lạ)
+      setFrame(osmSrc(place) + (attempt ? "&thu=" + attempt : ""), "osm");
+      timer = setTimeout(fail, FRAME_TIMEOUT_MS);
     }
 
-    // thêm tham số phụ ở các lần tải lại để trình duyệt chắc chắn gửi yêu cầu mới (OpenStreetMap bỏ qua tham số lạ)
-    var url = embedSrc(place) + (attempt ? "&thu=" + attempt : "");
-    var onLoad = function () {
-      frame.removeEventListener("load", onLoad);
-      if (my !== token) return;
-      frameLoaded = true;
-      check();
-    };
-    frame.addEventListener("load", onLoad);
-    frame.removeAttribute("loading"); // tự mình quyết định lúc tải, không để trình duyệt hoãn thêm
-    frame.setAttribute("src", url);
-    timer = setTimeout(fail, TIMEOUT_MS);
-
-    // (a) máy chủ phát trang nhúng: tải biểu tượng trang (thêm tham số theo giờ để không lấy bản lưu sẵn trong máy)
-    var siteProbe = new Image();
-    siteProbe.onload = function () { siteOk = true; check(); };
+    timer = setTimeout(fail, PROBE_TIMEOUT_MS);
+    var siteProbe = new Image(); // thêm tham số theo giờ để không lấy bản lưu sẵn trong máy
+    siteProbe.onload = function () { siteOk = true; probed(); };
     siteProbe.onerror = fail;
     siteProbe.src = "https://www.openstreetmap.org/favicon.ico?thu=" + Date.now();
-    // (b) máy chủ ảnh bản đồ: tải 1 ô quanh điểm ghim (yêu cầu ảnh bình thường, không ép bỏ bộ nhớ đệm — đúng quy định của OSM)
-    var tileProbe = new Image();
-    tileProbe.onload = function () { tileOk = true; check(); };
+    var tileProbe = new Image(); // yêu cầu ảnh bình thường, không ép bỏ bộ nhớ đệm — đúng quy định dùng ảnh của OSM
+    tileProbe.onload = function () { tileOk = true; probed(); };
     tileProbe.onerror = fail;
     tileProbe.src = tileUrl(place);
   }
 
-  function watch() { // chờ khung bản đồ sắp vào màn hình rồi mới tải
+  function watch() { // chờ khung bản đồ sắp vào màn hình rồi mới chạy
     if (watching || !frame) return;
     watching = true;
-    if (!("IntersectionObserver" in window)) { near = true; start(); return; }
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries.some(function (e) { return e.isIntersecting; })) return;
-      io.disconnect();
+    var io = null;
+    var go = function () {
+      if (near) return;
       near = true;
+      if (io) io.disconnect();
+      removeEventListener("scroll", onScroll);
       start();
-    }, { rootMargin: NEAR_MARGIN + " 0px" });
-    io.observe(frame);
+    };
+    // dự phòng cho trường hợp IntersectionObserver không báo: tự đo vị trí khung mỗi khi trang cuộn
+    var onScroll = function () {
+      if (frame.getBoundingClientRect().top < window.innerHeight + parseInt(NEAR_MARGIN, 10)) go();
+    };
+    addEventListener("scroll", onScroll, { passive: true });
+    if ("IntersectionObserver" in window) {
+      io = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; })) go();
+      }, { rootMargin: NEAR_MARGIN + " 0px" });
+      io.observe(frame);
+    }
+    onScroll(); // khung đã ở gần ngay từ đầu (màn hình cao, trang ngắn)
   }
 
   window.__CardMap = {
-    src: embedSrc,
     show: function (iframe, v) {
       var same = place && v && place.lat === v.lat && place.lng === v.lng && frame === iframe;
       frame = iframe;
       place = v;
+      // nền nhạt giữ chỗ trong lúc khung chưa có bản đồ để chỗ đó không trống trơn
+      if (!iframe.style.backgroundColor) iframe.style.backgroundColor = "rgba(81, 20, 25, 0.06)";
       if (same) return;
       attempt = 0;
-      if (near) start(); else watch(); // đổi bên khi bản đồ đã hiện → tải ngay bản đồ của bên mới
+      if (near) start(); else watch(); // đổi bên khi bản đồ đã hiện → chạy ngay cho bên mới
     },
     load: function () { near = true; start(); },
     state: function () {
-      return { attempt: attempt, near: near, noteShown: !!(note && !note.hidden), fallback: usingFallback, src: frame ? frame.getAttribute("src") : null };
+      return { attempt: attempt, near: near, showing: showing, noteShown: !!(note && !note.hidden), src: frame ? frame.getAttribute("src") : null };
     }
   };
 })();
@@ -906,7 +919,7 @@ window.CARD_SIDES = {
     }
   }
 
-  // Tiêu đề sự kiện trong link "Thêm vào lịch" lấy từ link có sẵn trong HTML.
+  // Tiêu đề sự kiện trong link "Thêm vào lịch" lấy từ link có sẵn trong HTML (vd. "Đám cưới Đặng Hoàng Long & Vũ Bảo Ngọc")
   var calBase = { title: "Đám cưới", names: "" };
   if (party && party.addLink) {
     try {
@@ -970,7 +983,7 @@ window.CARD_SIDES = {
       "&location=" + encodeURIComponent(where);
   }
 
-  // Bản đồ: OpenStreetMap nhúng theo venue.lat / venue.lng, có tự tải lại khi lỗi — xem _map-openstreetmap-retry.js
+  // Bản đồ nhúng theo venue.lat / venue.lng (mặc định Google Maps) — xem _map-google-or-openstreetmap.js
   function directionsHref(v) {
     return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(v.directionsTo || v.address);
   }
